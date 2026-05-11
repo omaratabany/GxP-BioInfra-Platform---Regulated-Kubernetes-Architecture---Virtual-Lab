@@ -60,7 +60,12 @@ metadata:
 spec:
   ipAddressPools:
   - homelab-pool
+  interfaces:
+  - eno1
+  - enp1s0
 ```
+
+The interface list reflects the current Talos nodes: Omen advertises on `eno1`; Beelink advertises on `enp1s0`.
 
 ---
 

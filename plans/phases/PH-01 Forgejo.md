@@ -3,7 +3,7 @@
 > Part of [[README]] | Previous: [[PH-00 Cluster Preparation]] | Next: [[PH-02 Authentik SSO]]
 > CKA domains: Helm deployments, Ingress, TLS secrets, PVC with StorageClass, StatefulSet behaviour
 
-**Status: IN PROGRESS**
+**Status: COMPLETE**
 **Depends on:** [[PH-00 Cluster Preparation]] -- `local-hdd` StorageClass must be working
 
 ---
@@ -17,14 +17,15 @@ All my project code lives in a self-hosted Forgejo instance on the cluster. GitH
 ## Repo Structure
 
 ```
-Home-Lab-Infra-as-code/
+k8s/
   apps/
+    platform-network/
+      metallb-l2-config.yaml
     forgejo/
+      application.yaml
       namespace.yaml
-      helm-release.yaml
-      pvc.yaml
-      ingress.yaml
       sealed-secret.yaml
+      values.yaml
 ```
 
 ---
@@ -103,13 +104,16 @@ After [[PH-02 Authentik SSO]] is live, Forgejo is configured as an OIDC client. 
 ## Exit Criteria
 
 - SSH NodePort is reachable from the Mac on `192.168.0.202:32222`
-- HTTPS route works through ingress NodePort `https://forgejo.homelab:30550`
+- HTTPS route works through the MetalLB VIP at `https://forgejo.homelab`
 - ArgoCD manages the Forgejo Helm release from the upstream OCI chart
 - Admin credentials exist only as a SealedSecret
 - Forgejo PVC is bound to Beelink HDD
 
-Current gap:
-- The MetalLB VIP `192.168.0.200` is not reachable from the Mac, so the clean `https://forgejo.homelab` route is not complete yet. Existing ingress NodePorts work.
+Bootstrap completion:
+- Internal repository created: `gxp-admin/gxp-platform`
+- Current platform tree pushed to Forgejo on branch `main`
+- Push webhook configured to `http://argocd-server.argocd.svc.cluster.local/api/webhook`
+- Temporary setup tokens removed after admin password rotation
 
 ---
 

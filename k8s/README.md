@@ -7,6 +7,7 @@ This directory contains deployable cluster configuration.
 | Directory | Purpose |
 |---|---|
 | `apps/` | Platform application manifests and ArgoCD Application definitions |
+| `apps/platform-network/` | Shared ingress and load balancer configuration |
 | `tests/` | Temporary verification manifests used during build validation |
 
 ## Rule

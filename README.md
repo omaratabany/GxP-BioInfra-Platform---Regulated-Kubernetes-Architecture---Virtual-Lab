@@ -42,7 +42,7 @@ Start here:
 | Phase | Name | Status |
 |---|---|---|
 | PH-00 | Cluster Preparation | COMPLETE |
-| PH-01 | Forgejo | IN PROGRESS |
+| PH-01 | Forgejo | COMPLETE |
 | PH-02 | Authentik SSO | NOT STARTED |
 | PH-03 | MinIO Object Storage | NOT STARTED |
 | PH-04 | OPA Gatekeeper | NOT STARTED |
@@ -58,8 +58,8 @@ Talos v1.12.6 / Kubernetes v1.35.2
 Storage: local-hdd on Beelink /var/mnt/hdd
 CNI: Flannel, with Cilium planned later
 GitOps: ArgoCD
-Ingress: Ingress-NGINX with NodePort access working
-Known gap: MetalLB VIP 192.168.0.200 is not reachable from the Mac
+Ingress: Ingress-NGINX through MetalLB VIP 192.168.0.200
+Change control: Forgejo repo gxp-admin/gxp-platform with ArgoCD push webhook
 ```
 
 ## Build Dependency Chain

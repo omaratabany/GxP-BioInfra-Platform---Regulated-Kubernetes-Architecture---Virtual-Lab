@@ -128,8 +128,17 @@ Issues resolved:
 - The initial bootstrap username `admin` was rejected by Forgejo as reserved. Regenerated the SealedSecret with `gxp-admin`.
 - Forgejo pod audit warned about missing seccomp. Added `RuntimeDefault` at pod level.
 
-Open issue:
-- MetalLB VIP `192.168.0.200` is not reachable from the Mac on ports 80 or 443. Ingress NodePorts `31837` and `30550` are reachable, so Forgejo is accessible through NodePort while MetalLB is investigated.
+Bootstrap completion:
+- Internal Forgejo repository `gxp-admin/gxp-platform` created as private.
+- Current platform tree pushed to Forgejo on branch `main`.
+- Push webhook configured to `http://argocd-server.argocd.svc.cluster.local/api/webhook`.
+- Admin password rotated and sealed after bootstrap.
+- Temporary bootstrap tokens removed after repository and webhook setup.
+- PH-01 etcd snapshot saved outside Git at `../snapshots/phase1-forgejo-complete.snapshot`. Snapshot hash `091d315d`, revision `3794347`, total keys `982`, size `17235968` bytes.
+
+Resolved network issue:
+- MetalLB VIP `192.168.0.200` is reachable from the Mac on ports 80 and 443. `https://forgejo.homelab` through the VIP returns HTTP 200.
+- MetalLB L2 advertisement was found pinned to `eno1`. Omen uses `eno1`; Beelink uses `enp1s0`. The desired platform configuration records both interfaces so either node can be used for VIP advertisement if ownership is moved.
 
 ---
 
@@ -148,7 +157,8 @@ Running list of issues encountered across all phases. Each issue also gets a ful
 | 2026-05-11 | PH-00 | local-path helper pod blocked by baseline PodSecurity hostPath restriction | Resolved | Labelled `local-path-storage` namespace as privileged and documented the exception |
 | 2026-05-11 | PH-01 | ArgoCD OCI source URL format was invalid | Resolved | Changed Forgejo Application repo URL to `code.forgejo.org/forgejo-helm` |
 | 2026-05-11 | PH-01 | Forgejo rejected bootstrap username `admin` as reserved | Resolved | Regenerated SealedSecret with `gxp-admin` |
-| 2026-05-11 | PH-01 | MetalLB VIP not reachable from Mac on 80 or 443 | Open | Use ingress NodePorts while MetalLB reachability is investigated |
+| 2026-05-11 | PH-01 | MetalLB VIP not reachable from Mac on 80 or 443 | Resolved | Reconciled MetalLB L2 config and verified ports 80 and 443 plus Forgejo HTTPS through `192.168.0.200` |
+| 2026-05-11 | PH-01 | Temporary Forgejo setup tokens needed for repo bootstrap | Resolved | Created repo and webhook, rotated admin password, and deleted bootstrap tokens |
 
 ---
 
@@ -157,7 +167,7 @@ Running list of issues encountered across all phases. Each issue also gets a ful
 | Phase | Exit Criteria Met | etcd Snapshot Taken | IQ Entry Written | Date |
 |---|---|---|---|---|
 | PH-00 | [x] | [x] | [x] | 2026-05-11 |
-| PH-01 | [ ] | [ ] | [ ] | |
+| PH-01 | [x] | [x] | [x] | 2026-05-11 |
 | PH-02 | [ ] | [ ] | [ ] | |
 | PH-03 | [ ] | [ ] | [ ] | |
 | PH-04 | [ ] | [ ] | [ ] | |
