@@ -85,6 +85,54 @@ Issues resolved:
 
 ---
 
+### [2026-05-11] -- Forgejo deployed
+
+**Phase:** PH-01
+**Status:** In progress
+
+Forgejo was deployed through ArgoCD using the upstream Forgejo Helm chart `17.0.1` from `code.forgejo.org/forgejo-helm/forgejo`. The workload is pinned to the Beelink storage node and uses the `local-hdd` StorageClass. Admin credentials were generated locally and committed only as a SealedSecret.
+
+Commands run:
+```bash
+brew install kubeseal helm
+
+kubectl --kubeconfig /Users/omaratabany/Kuber/kubeconfig \
+  apply -f k8s/apps/homelab-ca-issuer.yaml
+
+kubectl --kubeconfig /Users/omaratabany/Kuber/kubeconfig \
+  apply -f k8s/apps/forgejo/namespace.yaml
+
+kubectl --kubeconfig /Users/omaratabany/Kuber/kubeconfig \
+  apply -f k8s/apps/forgejo/sealed-secret.yaml
+
+kubectl --kubeconfig /Users/omaratabany/Kuber/kubeconfig \
+  apply -f k8s/apps/forgejo/application.yaml
+```
+
+Output / Result:
+```
+ArgoCD application forgejo: Synced, Healthy
+Forgejo health endpoint: status pass
+Forgejo pod node: talos-v3h-4m1
+Forgejo PVC: forgejo-data, 20Gi, Bound, local-hdd
+Forgejo PV selected node: talos-v3h-4m1
+Forgejo PV path: /var/mnt/hdd/pvc-ed75640b-14d6-4a4c-a89c-bfbfc2d4b03e_forgejo_forgejo-data
+Forgejo image: code.forgejo.org/forgejo/forgejo@sha256:4f4d168b4e792d0f73e5f4da0548f3b54b9c9d03fb85f277c97eb985cb9a290a
+Forgejo TLS certificate: Ready
+SSH NodePort: 192.168.0.202:32222 reachable
+HTTPS through ingress NodePort: https://forgejo.homelab:30550 returns HTTP 200
+```
+
+Issues resolved:
+- The first ArgoCD OCI source URL used the wrong format. Changed the repo URL from `oci://code.forgejo.org/forgejo-helm` to `code.forgejo.org/forgejo-helm`.
+- The initial bootstrap username `admin` was rejected by Forgejo as reserved. Regenerated the SealedSecret with `gxp-admin`.
+- Forgejo pod audit warned about missing seccomp. Added `RuntimeDefault` at pod level.
+
+Open issue:
+- MetalLB VIP `192.168.0.200` is not reachable from the Mac on ports 80 or 443. Ingress NodePorts `31837` and `30550` are reachable, so Forgejo is accessible through NodePort while MetalLB is investigated.
+
+---
+
 *Subsequent entries are added here as the build progresses.*
 
 ---
@@ -98,6 +146,9 @@ Running list of issues encountered across all phases. Each issue also gets a ful
 | 2026-05-11 | PH-00 | Omen still had control-plane NoSchedule taint | Resolved | Removed taint with `kubectl taint nodes talos-asj-72z node-role.kubernetes.io/control-plane:NoSchedule-` |
 | 2026-05-11 | PH-00 | local-path-provisioner RBAC too narrow for helper pods/events | Resolved | Added scoped pod and event permissions to `local-path-provisioner-role` |
 | 2026-05-11 | PH-00 | local-path helper pod blocked by baseline PodSecurity hostPath restriction | Resolved | Labelled `local-path-storage` namespace as privileged and documented the exception |
+| 2026-05-11 | PH-01 | ArgoCD OCI source URL format was invalid | Resolved | Changed Forgejo Application repo URL to `code.forgejo.org/forgejo-helm` |
+| 2026-05-11 | PH-01 | Forgejo rejected bootstrap username `admin` as reserved | Resolved | Regenerated SealedSecret with `gxp-admin` |
+| 2026-05-11 | PH-01 | MetalLB VIP not reachable from Mac on 80 or 443 | Open | Use ingress NodePorts while MetalLB reachability is investigated |
 
 ---
 
@@ -123,7 +174,7 @@ Filled in as each component is deployed. Used directly in the IQ document.
 | Component | Chart Version | Image Digest | Namespace | Deployed | Verified |
 |---|---|---|---|---|---|
 | local-path-provisioner | n/a | rancher/local-path-provisioner:v0.0.31 | local-path-storage | 2026-05-11 | 2026-05-11 |
-| Forgejo | | | forgejo | | |
+| Forgejo | 17.0.1 | code.forgejo.org/forgejo/forgejo@sha256:4f4d168b4e792d0f73e5f4da0548f3b54b9c9d03fb85f277c97eb985cb9a290a | forgejo | 2026-05-11 | 2026-05-11 |
 | Authentik | | | authentik | | |
 | MinIO | | | minio | | |
 | OPA Gatekeeper | | | gatekeeper-system | | |
@@ -144,7 +195,10 @@ sha256sum apps/<app>/helm-release.yaml
 | Component | File | SHA256 | Date |
 |---|---|---|---|
 | local-path-provisioner | k8s/apps/local-path-provisioner.yaml | 9b304f59e150f333efd87dd465e2231b00dcc07c167fbcf05277e5fa88225afe | 2026-05-11 |
-| Forgejo | apps/forgejo/helm-release.yaml | | |
+| Forgejo values | k8s/apps/forgejo/values.yaml | b6eb1ca113c2b9e10e13a3b4fe70951a6b443a7f5c489b1a7c326963a91b56ed | 2026-05-11 |
+| Forgejo ArgoCD Application | k8s/apps/forgejo/application.yaml | bd055fcfc8120c6d88feecb0cdac91ddd47f9956a2091739d526de930e3a142e | 2026-05-11 |
+| Forgejo SealedSecret | k8s/apps/forgejo/sealed-secret.yaml | 5a19c0c734010b4f98dc1228c42a0f0aeb2887f67a09419b0c66bc8c74ddb653 | 2026-05-11 |
+| homelab CA issuer | k8s/apps/homelab-ca-issuer.yaml | e074b64f30df844254ff566f51672a46e2155eed596388375cb530808f44bcab | 2026-05-11 |
 | Authentik | apps/authentik/helm-release.yaml | | |
 | MinIO | apps/minio/helm-release.yaml | | |
 | Gatekeeper | apps/gatekeeper/helm-release.yaml | | |

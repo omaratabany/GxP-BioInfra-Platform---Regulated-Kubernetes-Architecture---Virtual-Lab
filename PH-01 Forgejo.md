@@ -3,7 +3,7 @@
 > Part of [[README]] | Previous: [[PH-00 Cluster Preparation]] | Next: [[PH-02 Authentik SSO]]
 > CKA domains: Helm deployments, Ingress, TLS secrets, PVC with StorageClass, StatefulSet behaviour
 
-**Status: NOT STARTED**
+**Status: IN PROGRESS**
 **Depends on:** [[PH-00 Cluster Preparation]] -- `local-hdd` StorageClass must be working
 
 ---
@@ -76,7 +76,7 @@ ingress:
 
 ```bash
 kubectl create secret generic forgejo-admin-secret \
-  --from-literal=username=admin \
+  --from-literal=username=gxp-admin \
   --from-literal=password=<password> \
   --dry-run=client -o yaml | \
   kubeseal --controller-namespace sealed-secrets \
@@ -102,10 +102,14 @@ After [[PH-02 Authentik SSO]] is live, Forgejo is configured as an OIDC client. 
 
 ## Exit Criteria
 
-- SSH and HTTPS clone both work from the Mac
-- ArgoCD auto-syncs within seconds of a push to Forgejo
+- SSH NodePort is reachable from the Mac on `192.168.0.202:32222`
+- HTTPS route works through ingress NodePort `https://forgejo.homelab:30550`
+- ArgoCD manages the Forgejo Helm release from the upstream OCI chart
 - Admin credentials exist only as a SealedSecret
 - Forgejo PVC is bound to Beelink HDD
+
+Current gap:
+- The MetalLB VIP `192.168.0.200` is not reachable from the Mac, so the clean `https://forgejo.homelab` route is not complete yet. Existing ingress NodePorts work.
 
 ---
 

@@ -1,0 +1,103 @@
+global:
+  storageClass: local-hdd
+
+strategy:
+  type: Recreate
+
+image:
+  registry: code.forgejo.org
+  repository: forgejo/forgejo
+  tag: 15.0.1-rootless
+  rootless: true
+  pullPolicy: IfNotPresent
+
+podSecurityContext:
+  fsGroup: 1000
+  seccompProfile:
+    type: RuntimeDefault
+
+nodeSelector:
+  node-role: storage
+
+resources:
+  requests:
+    cpu: 200m
+    memory: 512Mi
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  privileged: false
+  runAsGroup: 1000
+  runAsNonRoot: true
+  runAsUser: 1000
+
+service:
+  http:
+    type: ClusterIP
+    port: 3000
+  ssh:
+    type: NodePort
+    port: 22
+    nodePort: 32222
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: homelab-ca-issuer
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+  hosts:
+    - host: forgejo.homelab
+      paths:
+        - path: /
+          pathType: Prefix
+          port: http
+  tls:
+    - secretName: forgejo-tls
+      hosts:
+        - forgejo.homelab
+
+persistence:
+  enabled: true
+  create: true
+  mount: true
+  claimName: forgejo-data
+  size: 20Gi
+  accessModes:
+    - ReadWriteOnce
+  storageClass: local-hdd
+  annotations:
+    helm.sh/resource-policy: keep
+
+gitea:
+  admin:
+    existingSecret: forgejo-admin-secret
+    username: gxp-admin
+    passwordMode: initialOnlyNoReset
+  config:
+    APP_NAME: GxP BioInfra Forgejo
+    RUN_MODE: prod
+    server:
+      DOMAIN: forgejo.homelab
+      SSH_DOMAIN: forgejo.homelab
+      SSH_PORT: 32222
+      SSH_LISTEN_PORT: 2222
+      ROOT_URL: https://forgejo.homelab/
+    database:
+      DB_TYPE: sqlite3
+    service:
+      DISABLE_REGISTRATION: true
+      REQUIRE_SIGNIN_VIEW: true
+    repository:
+      DEFAULT_PRIVATE: private
+    security:
+      INSTALL_LOCK: true
+
+test:
+  enabled: false
