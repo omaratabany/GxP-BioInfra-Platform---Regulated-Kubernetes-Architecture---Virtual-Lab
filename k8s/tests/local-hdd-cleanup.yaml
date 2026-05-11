@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: local-hdd-cleanup
+  namespace: local-path-storage
+spec:
+  restartPolicy: Never
+  nodeSelector:
+    node-role: storage
+  containers:
+    - name: cleanup
+      image: busybox:1.36
+      imagePullPolicy: IfNotPresent
+      command:
+        - sh
+        - -c
+        - |
+          set -eu
+          rm -rf /hdd/*_default_local-hdd-test
+          find /hdd -maxdepth 1 -type d -name '*_default_local-hdd-test' -print
+          echo "local-hdd test artifacts cleaned"
+      volumeMounts:
+        - name: hdd
+          mountPath: /hdd
+  volumes:
+    - name: hdd
+      hostPath:
+        path: /var/mnt/hdd
+        type: Directory
