@@ -142,6 +142,55 @@ Resolved network issue:
 
 ---
 
+### [2026-05-12] -- Authentik SSO deployed and wired
+
+**Phase:** PH-02
+**Status:** In progress
+
+Authentik was deployed through ArgoCD using chart `2026.2.2`. The server and worker run on the Omen infra node and PostgreSQL runs on the Beelink storage node using `local-hdd`.
+
+Commands run:
+```bash
+kubectl --kubeconfig /Users/omaratabany/Kuber/kubeconfig apply -f k8s/apps/authentik/namespace.yaml
+kubectl --kubeconfig /Users/omaratabany/Kuber/kubeconfig apply -f k8s/apps/authentik/sealed-secret.yaml
+kubectl --kubeconfig /Users/omaratabany/Kuber/kubeconfig apply -f k8s/apps/authentik/application.yaml
+kubectl --kubeconfig /Users/omaratabany/Kuber/kubeconfig apply -f k8s/apps/platform-network/coredns-homelab.yaml
+kubectl --kubeconfig /Users/omaratabany/Kuber/kubeconfig rollout restart deployment/coredns -n kube-system
+```
+
+Output / Result:
+```
+ArgoCD application authentik: Synced, Healthy
+Authentik TLS certificate: Ready
+Authentik endpoint: https://auth.homelab returns HTTP 302 to the login flow
+Authentik PostgreSQL PVC: data-authentik-postgresql-0, 10Gi, Bound, local-hdd
+Authentik server image: ghcr.io/goauthentik/server@sha256:40f0df709957c11324420fa387f1135c427f16086f12ca266b2d883d39c71fe3
+Authentik PostgreSQL image: docker.io/library/postgres@sha256:47f917f7409eacd22fc5dfb1dee634e1b55cf0c01d1a7eb701be2227a03e0641
+```
+
+OIDC providers were created in Authentik for:
+- Forgejo: `https://forgejo.homelab/user/oauth2/authentik/callback`
+- ArgoCD: `https://argocd.homelab/auth/callback`
+- Grafana: `https://grafana.homelab/login/generic_oauth`
+
+Groups created:
+- `platform-admin`
+- `developer`
+- `readonly`
+
+Issues resolved:
+- Authentik worker health probes were too tight for the minimal cluster. Increased worker probe timeout and startup failure threshold, then rolled the app.
+- Pods could not resolve homelab hostnames. Added a CoreDNS `hosts` block for the MetalLB VIP and restarted CoreDNS.
+- Forgejo could not verify Authentik TLS through the homelab CA. Mounted the public homelab root CA into the Forgejo container and set `SSL_CERT_FILE`.
+
+Current remaining work:
+- Perform browser login tests for Forgejo, ArgoCD, and Grafana.
+- Confirm group claim mapping in live login tokens.
+- Disable local password fallback only after SSO login works end to end.
+- Migrate the existing monitoring stack under this GXP repo so Grafana SSO is not only a live overlay.
+
+---
+
 *Subsequent entries are added here as the build progresses.*
 
 ---
@@ -159,6 +208,10 @@ Running list of issues encountered across all phases. Each issue also gets a ful
 | 2026-05-11 | PH-01 | Forgejo rejected bootstrap username `admin` as reserved | Resolved | Regenerated SealedSecret with `gxp-admin` |
 | 2026-05-11 | PH-01 | MetalLB VIP not reachable from Mac on 80 or 443 | Resolved | Reconciled MetalLB L2 config and verified ports 80 and 443 plus Forgejo HTTPS through `192.168.0.200` |
 | 2026-05-11 | PH-01 | Temporary Forgejo setup tokens needed for repo bootstrap | Resolved | Created repo and webhook, rotated admin password, and deleted bootstrap tokens |
+| 2026-05-12 | PH-02 | Authentik worker probe timeouts on minimal hardware | Resolved | Increased worker probe timeout and startup failure threshold |
+| 2026-05-12 | PH-02 | Pods could not resolve homelab hostnames | Resolved | Added CoreDNS `hosts` entries for the MetalLB VIP |
+| 2026-05-12 | PH-02 | Forgejo could not verify Authentik TLS | Resolved | Mounted the homelab root CA and set `SSL_CERT_FILE` |
+| 2026-05-12 | PH-02 | Grafana is owned by older monitoring ApplicationSet | Open | Captured SSO as a live overlay pending migration into the GXP repo |
 
 ---
 
@@ -185,7 +238,8 @@ Filled in as each component is deployed. Used directly in the IQ document.
 |---|---|---|---|---|---|
 | local-path-provisioner | n/a | rancher/local-path-provisioner:v0.0.31 | local-path-storage | 2026-05-11 | 2026-05-11 |
 | Forgejo | 17.0.1 | code.forgejo.org/forgejo/forgejo@sha256:4f4d168b4e792d0f73e5f4da0548f3b54b9c9d03fb85f277c97eb985cb9a290a | forgejo | 2026-05-11 | 2026-05-11 |
-| Authentik | | | authentik | | |
+| Authentik | 2026.2.2 | ghcr.io/goauthentik/server@sha256:40f0df709957c11324420fa387f1135c427f16086f12ca266b2d883d39c71fe3 | authentik | 2026-05-12 | 2026-05-12 |
+| Authentik PostgreSQL | 16.7.27 | docker.io/library/postgres@sha256:47f917f7409eacd22fc5dfb1dee634e1b55cf0c01d1a7eb701be2227a03e0641 | authentik | 2026-05-12 | 2026-05-12 |
 | MinIO | | | minio | | |
 | OPA Gatekeeper | | | gatekeeper-system | | |
 | Falco | | | monitoring | | |
@@ -209,7 +263,15 @@ sha256sum apps/<app>/helm-release.yaml
 | Forgejo ArgoCD Application | k8s/apps/forgejo/application.yaml | bd055fcfc8120c6d88feecb0cdac91ddd47f9956a2091739d526de930e3a142e | 2026-05-11 |
 | Forgejo SealedSecret | k8s/apps/forgejo/sealed-secret.yaml | 5a19c0c734010b4f98dc1228c42a0f0aeb2887f67a09419b0c66bc8c74ddb653 | 2026-05-11 |
 | homelab CA issuer | k8s/apps/homelab-ca-issuer.yaml | e074b64f30df844254ff566f51672a46e2155eed596388375cb530808f44bcab | 2026-05-11 |
-| Authentik | apps/authentik/helm-release.yaml | | |
+| Authentik values | k8s/apps/authentik/values.yaml | 2f2877c356e3b1235b5b84a62f194eff40fb298f8562ee0651fcf8697596e9d0 | 2026-05-12 |
+| Authentik ArgoCD Application | k8s/apps/authentik/application.yaml | 48c349635a1424354b263d42d51302984e08f2c43aa478a5215d54db928c06fa | 2026-05-12 |
+| Authentik SealedSecret | k8s/apps/authentik/sealed-secret.yaml | 6c653b4b10c3afccfd1511e60959d0f3ca0504f08b5d98c41fcad13898da14f1 | 2026-05-12 |
+| OIDC client SealedSecrets | k8s/apps/authentik/oidc-client-secrets.yaml | 85d71c56cc289e294d80bee59fe82e4bc874d099ff743e91ef4c08e5f2c90198 | 2026-05-12 |
+| CoreDNS homelab hosts | k8s/apps/platform-network/coredns-homelab.yaml | fb9f2ed64f00d4b3d07159c471c1e8b13bc2304d147945a2d4eb129808fccd07 | 2026-05-12 |
+| Forgejo homelab CA trust | k8s/apps/forgejo/homelab-ca-configmap.yaml | 07de9513e4836539c39e2619df9c9f0d123b078cfe8f859accbbdc3007f49b6f | 2026-05-12 |
+| Grafana OIDC config | k8s/apps/monitoring/grafana-oidc-configmap.yaml | bd7e1edf352cf6e0a80c719c36d9f5a4357cb8ed5d7eea6c300ac5d8f647ed9b | 2026-05-12 |
+| Grafana OIDC Deployment patch | k8s/apps/monitoring/grafana-oidc-deployment-patch.yaml | d05c49d3ed5f815a79d150c70765f9930da1af4f1ecba37cf0c4bec57cec15b7 | 2026-05-12 |
+| Monitoring homelab CA trust | k8s/apps/monitoring/homelab-ca-configmap.yaml | 8a1f4cafdcd4c97871cf23ac102fa712c7b629604989b7d33f5756877ec0a974 | 2026-05-12 |
 | MinIO | apps/minio/helm-release.yaml | | |
 | Gatekeeper | apps/gatekeeper/helm-release.yaml | | |
 | Falco | apps/falco/helm-release.yaml | | |

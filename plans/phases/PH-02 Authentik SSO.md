@@ -3,7 +3,7 @@
 > Part of [[README]] | Previous: [[PH-01 Forgejo]] | Next: [[PH-03 MinIO Object Storage]]
 > CKA domains: RBAC, ServiceAccounts, ClusterRoles, ClusterRoleBindings
 
-**Status: NOT STARTED**
+**Status: IN PROGRESS**
 **Depends on:** [[PH-01 Forgejo]] -- Forgejo must be running before OIDC client is configured
 
 ---
@@ -74,13 +74,29 @@ role_attribute_path = contains(groups[*], 'platform-admin') && 'Admin' || 'Viewe
 
 ## Exit Criteria
 
-- Login to Forgejo via Authentik works -- no local password accepted
-- Login to ArgoCD via Authentik works
-- Login to Grafana via Authentik works
-- Group membership controls access level across all three apps
-- No shared accounts exist anywhere on the platform
+- [x] Authentik deployed at `auth.homelab`
+- [x] Authentik PostgreSQL PVC bound on the Beelink storage node through `local-hdd`
+- [x] Platform groups created: `platform-admin`, `developer`, `readonly`
+- [x] OIDC providers created for Forgejo, ArgoCD, and Grafana
+- [x] OIDC client secrets sealed into Git
+- [x] Forgejo OIDC source configured against Authentik
+- [x] ArgoCD OIDC settings and RBAC configured against Authentik
+- [x] Grafana Generic OAuth option configured against Authentik
+- [ ] Browser login to Forgejo via Authentik works
+- [ ] Browser login to ArgoCD via Authentik works
+- [ ] Browser login to Grafana via Authentik works
+- [ ] Group membership controls access level across all three apps
+- [ ] Local password fallback disabled after SSO is tested
 
 ---
+
+## Current Build Notes
+
+Authentik is running from chart `2026.2.2` with server image `ghcr.io/goauthentik/server:2026.2.2`. PostgreSQL is enabled as the backing database and pinned to the storage node with a 10Gi `local-hdd` PVC.
+
+The current cluster needs local homelab DNS from inside pods. CoreDNS now maps `auth.homelab`, `forgejo.homelab`, `argocd.homelab`, `grafana.homelab`, and related platform hostnames to MetalLB VIP `192.168.0.200`.
+
+Grafana is still owned by the older `kube-prometheus-stack` ApplicationSet. The current SSO settings are captured under `k8s/apps/monitoring/` as a live overlay until the monitoring stack is migrated under this GXP repo.
 
 ## CKA Coverage
 

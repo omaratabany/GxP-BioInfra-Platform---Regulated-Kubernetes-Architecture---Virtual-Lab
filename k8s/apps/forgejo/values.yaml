@@ -16,6 +16,11 @@ podSecurityContext:
   seccompProfile:
     type: RuntimeDefault
 
+deployment:
+  env:
+    - name: SSL_CERT_FILE
+      value: /etc/ssl/homelab/homelab-root-ca.crt
+
 nodeSelector:
   node-role: storage
 
@@ -36,6 +41,16 @@ containerSecurityContext:
   runAsGroup: 1000
   runAsNonRoot: true
   runAsUser: 1000
+
+extraVolumes:
+  - name: homelab-ca-bundle
+    configMap:
+      name: homelab-ca-bundle
+
+extraContainerVolumeMounts:
+  - name: homelab-ca-bundle
+    mountPath: /etc/ssl/homelab
+    readOnly: true
 
 service:
   http:

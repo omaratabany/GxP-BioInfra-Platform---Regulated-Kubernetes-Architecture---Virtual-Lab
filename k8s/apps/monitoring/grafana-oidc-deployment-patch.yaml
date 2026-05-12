@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kube-prometheus-stack-grafana
+  namespace: monitoring
+spec:
+  template:
+    spec:
+      volumes:
+        - name: grafana-oidc-secret
+          secret:
+            secretName: grafana-oidc-secret
+        - name: homelab-ca-bundle
+          configMap:
+            name: homelab-ca-bundle
+      containers:
+        - name: grafana-sc-dashboard
+          env:
+            - name: GF_SERVER_DOMAIN
+              value: grafana.homelab
+            - name: GF_SERVER_ROOT_URL
+              value: https://grafana.homelab
+        - name: grafana-sc-datasources
+          env:
+            - name: GF_SERVER_DOMAIN
+              value: grafana.homelab
+            - name: GF_SERVER_ROOT_URL
+              value: https://grafana.homelab
+        - name: grafana
+          env:
+            - name: GF_SERVER_DOMAIN
+              value: grafana.homelab
+            - name: GF_SERVER_ROOT_URL
+              value: https://grafana.homelab
+          volumeMounts:
+            - name: grafana-oidc-secret
+              mountPath: /etc/secrets/grafana-oidc
+              readOnly: true
+            - name: homelab-ca-bundle
+              mountPath: /etc/ssl/homelab
+              readOnly: true

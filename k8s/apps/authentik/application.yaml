@@ -1,0 +1,125 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: authentik
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://charts.goauthentik.io
+    chart: authentik
+    targetRevision: 2026.2.2
+    helm:
+      releaseName: authentik
+      values: |
+        global:
+          image:
+            repository: ghcr.io/goauthentik/server
+            tag: 2026.2.2
+            pullPolicy: IfNotPresent
+          envFrom:
+            - secretRef:
+                name: authentik-secrets
+
+        authentik:
+          log_level: info
+          error_reporting:
+            enabled: false
+          postgresql:
+            host: authentik-postgresql
+            name: authentik
+            user: authentik
+
+        server:
+          replicas: 1
+          nodeSelector:
+            node-role: infra
+          resources:
+            requests:
+              cpu: 200m
+              memory: 384Mi
+            limits:
+              cpu: 750m
+              memory: 768Mi
+          securityContext:
+            seccompProfile:
+              type: RuntimeDefault
+          containerSecurityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          service:
+            type: ClusterIP
+          ingress:
+            enabled: true
+            ingressClassName: nginx
+            annotations:
+              cert-manager.io/cluster-issuer: homelab-ca-issuer
+              nginx.ingress.kubernetes.io/ssl-redirect: "true"
+            hosts:
+              - auth.homelab
+            tls:
+              - secretName: authentik-tls
+                hosts:
+                  - auth.homelab
+
+        worker:
+          replicas: 1
+          nodeSelector:
+            node-role: infra
+          resources:
+            requests:
+              cpu: 200m
+              memory: 384Mi
+            limits:
+              cpu: 1000m
+              memory: 768Mi
+          livenessProbe:
+            timeoutSeconds: 10
+          readinessProbe:
+            timeoutSeconds: 10
+          startupProbe:
+            failureThreshold: 120
+            timeoutSeconds: 10
+          securityContext:
+            seccompProfile:
+              type: RuntimeDefault
+          containerSecurityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+
+        postgresql:
+          enabled: true
+          auth:
+            username: authentik
+            database: authentik
+            existingSecret: authentik-secrets
+            secretKeys:
+              adminPasswordKey: postgres-password
+              userPasswordKey: password
+          primary:
+            nodeSelector:
+              node-role: storage
+            resources:
+              requests:
+                cpu: 100m
+                memory: 256Mi
+              limits:
+                cpu: 500m
+                memory: 512Mi
+            persistence:
+              enabled: true
+              storageClass: local-hdd
+              size: 10Gi
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: authentik
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
