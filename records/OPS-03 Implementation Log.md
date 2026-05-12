@@ -192,6 +192,58 @@ Current remaining work:
 
 ---
 
+### [2026-05-12] -- MinIO object storage deployed
+
+**Phase:** PH-03
+**Status:** In progress
+
+MinIO was deployed in the `minio` namespace using first-party Kubernetes manifests instead of the Bitnami Helm chart. The Bitnami chart rendered successfully, but the referenced Docker Hub image tags returned `not found` on the Talos nodes. The broken chart-managed pods and stale resources were removed, while the 200Gi PVC was kept and reused.
+
+Commands run:
+```bash
+kubectl --kubeconfig /Users/omaratabany/Kuber/kubeconfig apply -f k8s/apps/minio/namespace.yaml
+kubectl --kubeconfig /Users/omaratabany/Kuber/kubeconfig apply -f k8s/apps/minio/sealed-secret.yaml
+kubectl --kubeconfig /Users/omaratabany/Kuber/kubeconfig apply -f k8s/apps/minio/pvc.yaml
+kubectl --kubeconfig /Users/omaratabany/Kuber/kubeconfig apply -f k8s/apps/minio/deployment.yaml
+kubectl --kubeconfig /Users/omaratabany/Kuber/kubeconfig apply -f k8s/apps/minio/service.yaml
+kubectl --kubeconfig /Users/omaratabany/Kuber/kubeconfig apply -f k8s/apps/minio/ingress.yaml
+kubectl --kubeconfig /Users/omaratabany/Kuber/kubeconfig apply -f k8s/apps/minio/provisioning-job.yaml
+```
+
+Output / Result:
+```text
+MinIO pod: Running, 1/1, node talos-v3h-4m1
+MinIO PVC: minio, 200Gi, Bound, local-hdd
+MinIO PV path: /var/mnt/hdd/pvc-0ce01072-2a35-46f4-b76c-9bc408ca8dac_minio_minio
+MinIO API: https://minio.homelab/minio/health/live returns HTTP 200
+MinIO Console: https://minio-console.homelab returns HTTP 200
+MinIO image: quay.io/minio/minio@sha256:cf3dadcfa1fb0324f43958bad1abba986d53c4ecc04d4d50b46c7dcda28bd3cd
+MinIO client image: quay.io/minio/mc@sha256:a7fe349ef4bd8521fb8497f55c6042871b2ae640607cf99d9bede5e9bdf11727
+```
+
+Provisioning result:
+```text
+Bucket created successfully homelab/pipeline-input.
+Bucket created successfully homelab/pipeline-output.
+Bucket created successfully homelab/pipeline-work.
+Bucket created successfully homelab/loki-chunks.
+homelab/pipeline-output versioning is enabled
+homelab/loki-chunks versioning is enabled
+Lifecycle configuration rule added to homelab/pipeline-work.
+```
+
+Issues resolved:
+- Bitnami MinIO chart `17.0.21` referenced unavailable image tags. Replaced it with pinned official `quay.io/minio` images.
+- The first provisioning job failed because the MinIO client tried to write `/.mc` as non-root. Set `MC_CONFIG_DIR=/tmp/.mc`.
+- Removed stale Bitnami `minio-console` service, network policies, and pod disruption budgets after switching to the GXP manifests.
+
+Current remaining work:
+- Create sealed non-root MinIO users for Nextflow and Loki.
+- Reconfigure Loki to use `loki-chunks`.
+- Migrate Prometheus TSDB to `local-hdd`.
+
+---
+
 *Subsequent entries are added here as the build progresses.*
 
 ---
@@ -214,6 +266,8 @@ Running list of issues encountered across all phases. Each issue also gets a ful
 | 2026-05-12 | PH-02 | Forgejo could not verify Authentik TLS | Resolved | Mounted the homelab root CA and set `SSL_CERT_FILE` |
 | 2026-05-12 | PH-02 | Grafana is owned by older monitoring ApplicationSet | Open | Captured SSO as a live overlay pending migration into the GXP repo |
 | 2026-05-12 | PH-02 | ArgoCD root Application still points to the older home lab repo | Open | Keep current root until repository credentials for the GXP mirror are sealed or GitHub push access is restored |
+| 2026-05-12 | PH-03 | Bitnami MinIO image tags were unavailable | Resolved | Replaced the chart path with pinned official MinIO images |
+| 2026-05-12 | PH-03 | MinIO client could not write `/.mc` as non-root | Resolved | Set `MC_CONFIG_DIR=/tmp/.mc` in the provisioning job |
 
 ---
 
@@ -242,7 +296,7 @@ Filled in as each component is deployed. Used directly in the IQ document.
 | Forgejo | 17.0.1 | code.forgejo.org/forgejo/forgejo@sha256:4f4d168b4e792d0f73e5f4da0548f3b54b9c9d03fb85f277c97eb985cb9a290a | forgejo | 2026-05-11 | 2026-05-11 |
 | Authentik | 2026.2.2 | ghcr.io/goauthentik/server@sha256:40f0df709957c11324420fa387f1135c427f16086f12ca266b2d883d39c71fe3 | authentik | 2026-05-12 | 2026-05-12 |
 | Authentik PostgreSQL | 16.7.27 | docker.io/library/postgres@sha256:47f917f7409eacd22fc5dfb1dee634e1b55cf0c01d1a7eb701be2227a03e0641 | authentik | 2026-05-12 | 2026-05-12 |
-| MinIO | | | minio | | |
+| MinIO | n/a | quay.io/minio/minio@sha256:cf3dadcfa1fb0324f43958bad1abba986d53c4ecc04d4d50b46c7dcda28bd3cd | minio | 2026-05-12 | 2026-05-12 |
 | OPA Gatekeeper | | | gatekeeper-system | | |
 | Falco | | | monitoring | | |
 | Falcosidekick | | | monitoring | | |
@@ -276,6 +330,13 @@ sha256sum apps/<app>/helm-release.yaml
 | Grafana OIDC config | k8s/apps/monitoring/grafana-oidc-configmap.yaml | bd7e1edf352cf6e0a80c719c36d9f5a4357cb8ed5d7eea6c300ac5d8f647ed9b | 2026-05-12 |
 | Grafana OIDC Deployment patch | k8s/apps/monitoring/grafana-oidc-deployment-patch.yaml | d05c49d3ed5f815a79d150c70765f9930da1af4f1ecba37cf0c4bec57cec15b7 | 2026-05-12 |
 | Monitoring homelab CA trust | k8s/apps/monitoring/homelab-ca-configmap.yaml | 8a1f4cafdcd4c97871cf23ac102fa712c7b629604989b7d33f5756877ec0a974 | 2026-05-12 |
+| MinIO namespace | k8s/apps/minio/namespace.yaml | 3597e76cb51d9f78cddc7d37cc43b0f8cac66d57370c16824006900132533351 | 2026-05-12 |
+| MinIO SealedSecret | k8s/apps/minio/sealed-secret.yaml | 0aefe8adc6f0f78eec9e8f5933b82d794ba92000a2bf4a78b8f0c44d85caa4a3 | 2026-05-12 |
+| MinIO PVC | k8s/apps/minio/pvc.yaml | 542530eb2653b0ade3c8453fdf404f769e2abd0e4cfcb3c9de514e5e19185299 | 2026-05-12 |
+| MinIO Deployment | k8s/apps/minio/deployment.yaml | 4cba7df8f87a4af7b047bb4ee686c7da97c9a54a51ced16aff5d6319dbfe870f | 2026-05-12 |
+| MinIO Service | k8s/apps/minio/service.yaml | c89d92a7ebc8b5747d6503fff851bbbde6145a6e55346e98c1b5181a2bcb6e32 | 2026-05-12 |
+| MinIO Ingress | k8s/apps/minio/ingress.yaml | 53e629a221a76283636faa02f3ff14090a22d381d77c504a8af8fe40bbcd9428 | 2026-05-12 |
+| MinIO Provisioning Job | k8s/apps/minio/provisioning-job.yaml | d3907b35c6ae77e0b003de945c15b1c756a46270dd97145c1c00b147c809cb5b | 2026-05-12 |
 | MinIO | apps/minio/helm-release.yaml | | |
 | Gatekeeper | apps/gatekeeper/helm-release.yaml | | |
 | Falco | apps/falco/helm-release.yaml | | |

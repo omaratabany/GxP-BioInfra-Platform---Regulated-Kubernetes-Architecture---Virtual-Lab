@@ -3,7 +3,7 @@
 > Part of [[README]] | Previous: [[PH-02 Authentik SSO]] | Next: [[PH-04 OPA Gatekeeper]]
 > CKA domains: ConfigMaps and Secrets as env vars, resource requests/limits, liveness/readiness probes
 
-**Status: NOT STARTED**
+**Status: IN PROGRESS**
 **Depends on:** [[PH-00 Cluster Preparation]] -- Beelink HDD and `local-hdd` StorageClass required
 
 ---
@@ -35,7 +35,30 @@ S3-compatible object storage for pipeline data and Loki log chunks running on th
 
 ---
 
-## Helm Values (targets)
+## Current Deployment
+
+MinIO is deployed as a small first-party Kubernetes manifest rather than the Bitnami Helm chart. The Bitnami chart `17.0.21` rendered correctly, but its referenced Docker Hub image tags were not available to the Talos nodes. The running deployment uses official `quay.io/minio` images pinned by digest.
+
+Current image:
+
+```text
+quay.io/minio/minio@sha256:cf3dadcfa1fb0324f43958bad1abba986d53c4ecc04d4d50b46c7dcda28bd3cd
+```
+
+Current client image for provisioning:
+
+```text
+quay.io/minio/mc@sha256:a7fe349ef4bd8521fb8497f55c6042871b2ae640607cf99d9bede5e9bdf11727
+```
+
+The MinIO API and Console are served from one deployment:
+
+- API: `https://minio.homelab`
+- Console: `https://minio-console.homelab`
+- PVC: `minio`, 200Gi, `local-hdd`
+- Node: `talos-v3h-4m1`
+
+## Original Helm Values Target
 
 ```yaml
 mode: standalone
@@ -91,10 +114,16 @@ Nextflow work directories accumulate fast. 30-day auto-delete keeps the HDD from
 
 ## Exit Criteria
 
-- `mc ls homelab/pipeline-input` works from the Mac
-- Loki writing to `loki-chunks` bucket confirmed in Grafana
-- MinIO Console accessible at `minio-console.homelab`
-- PVC bound to Beelink HDD
+- [x] MinIO API health endpoint returns HTTP 200 at `minio.homelab`
+- [x] MinIO Console returns HTTP 200 at `minio-console.homelab`
+- [x] PVC bound to Beelink HDD
+- [x] Buckets created: `pipeline-input`, `pipeline-output`, `pipeline-work`, `loki-chunks`
+- [x] Versioning enabled for `pipeline-output`
+- [x] Versioning enabled for `loki-chunks`
+- [x] `pipeline-work` lifecycle expiry set to 30 days
+- [ ] `mc ls homelab/pipeline-input` works from the Mac with a non-root platform user
+- [ ] Loki writing to `loki-chunks` bucket confirmed in Grafana
+- [ ] Prometheus TSDB migrated to Beelink HDD
 
 ---
 

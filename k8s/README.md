@@ -10,6 +10,7 @@ This directory contains deployable cluster configuration.
 | `apps/argocd/` | ArgoCD OIDC and RBAC merge patches |
 | `apps/authentik/` | Authentik SSO deployment and sealed OIDC client secrets |
 | `apps/forgejo/` | Forgejo deployment, storage, ingress, and homelab CA trust |
+| `apps/minio/` | MinIO object storage for pipeline data and Loki chunks |
 | `apps/monitoring/` | Grafana SSO overlay for the existing monitoring stack |
 | `apps/platform-network/` | Shared ingress and load balancer configuration |
 | `tests/` | Temporary verification manifests used during build validation |
