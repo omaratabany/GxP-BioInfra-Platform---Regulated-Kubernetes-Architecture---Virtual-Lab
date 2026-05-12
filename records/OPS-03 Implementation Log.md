@@ -188,6 +188,7 @@ Current remaining work:
 - Confirm group claim mapping in live login tokens.
 - Disable local password fallback only after SSO login works end to end.
 - Migrate the existing monitoring stack under this GXP repo so Grafana SSO is not only a live overlay.
+- Add a sealed ArgoCD repository credential for the internal Forgejo mirror or restore GitHub push access before moving the root Application to this GXP repo.
 
 ---
 
@@ -212,6 +213,7 @@ Running list of issues encountered across all phases. Each issue also gets a ful
 | 2026-05-12 | PH-02 | Pods could not resolve homelab hostnames | Resolved | Added CoreDNS `hosts` entries for the MetalLB VIP |
 | 2026-05-12 | PH-02 | Forgejo could not verify Authentik TLS | Resolved | Mounted the homelab root CA and set `SSL_CERT_FILE` |
 | 2026-05-12 | PH-02 | Grafana is owned by older monitoring ApplicationSet | Open | Captured SSO as a live overlay pending migration into the GXP repo |
+| 2026-05-12 | PH-02 | ArgoCD root Application still points to the older home lab repo | Open | Keep current root until repository credentials for the GXP mirror are sealed or GitHub push access is restored |
 
 ---
 
@@ -267,6 +269,8 @@ sha256sum apps/<app>/helm-release.yaml
 | Authentik ArgoCD Application | k8s/apps/authentik/application.yaml | 48c349635a1424354b263d42d51302984e08f2c43aa478a5215d54db928c06fa | 2026-05-12 |
 | Authentik SealedSecret | k8s/apps/authentik/sealed-secret.yaml | 6c653b4b10c3afccfd1511e60959d0f3ca0504f08b5d98c41fcad13898da14f1 | 2026-05-12 |
 | OIDC client SealedSecrets | k8s/apps/authentik/oidc-client-secrets.yaml | 85d71c56cc289e294d80bee59fe82e4bc874d099ff743e91ef4c08e5f2c90198 | 2026-05-12 |
+| ArgoCD OIDC patch | k8s/apps/argocd/argocd-oidc-config-patch.yaml | 4be51d3d02bd4a7fbf943555dcb324c6c4383a57b9aa8906159d780040e1cd3d | 2026-05-12 |
+| ArgoCD RBAC patch | k8s/apps/argocd/argocd-rbac-config-patch.yaml | 94859018fa515d1bd1fd1b7c13859d17350ba8c59510edecd6920960670cf1ef | 2026-05-12 |
 | CoreDNS homelab hosts | k8s/apps/platform-network/coredns-homelab.yaml | fb9f2ed64f00d4b3d07159c471c1e8b13bc2304d147945a2d4eb129808fccd07 | 2026-05-12 |
 | Forgejo homelab CA trust | k8s/apps/forgejo/homelab-ca-configmap.yaml | 07de9513e4836539c39e2619df9c9f0d123b078cfe8f859accbbdc3007f49b6f | 2026-05-12 |
 | Grafana OIDC config | k8s/apps/monitoring/grafana-oidc-configmap.yaml | bd7e1edf352cf6e0a80c719c36d9f5a4357cb8ed5d7eea6c300ac5d8f647ed9b | 2026-05-12 |

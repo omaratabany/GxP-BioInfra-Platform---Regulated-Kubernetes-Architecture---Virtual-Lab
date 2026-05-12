@@ -7,6 +7,7 @@ This directory contains deployable cluster configuration.
 | Directory | Purpose |
 |---|---|
 | `apps/` | Platform application manifests and ArgoCD Application definitions |
+| `apps/argocd/` | ArgoCD OIDC and RBAC merge patches |
 | `apps/authentik/` | Authentik SSO deployment and sealed OIDC client secrets |
 | `apps/forgejo/` | Forgejo deployment, storage, ingress, and homelab CA trust |
 | `apps/monitoring/` | Grafana SSO overlay for the existing monitoring stack |
@@ -18,3 +19,5 @@ This directory contains deployable cluster configuration.
 Manifests in `apps/` are intended to represent desired cluster state. Manifests in `tests/` are used for verification and should not leave test workloads running after evidence is collected.
 
 `apps/monitoring/grafana-oidc-deployment-patch.yaml` is a strategic merge patch for the current Grafana Deployment. Do not apply it as a full Deployment manifest.
+
+Files in `apps/argocd/` are also merge patches. Apply them with `kubectl patch --type merge --patch-file` so existing ArgoCD tuning keys are preserved.
