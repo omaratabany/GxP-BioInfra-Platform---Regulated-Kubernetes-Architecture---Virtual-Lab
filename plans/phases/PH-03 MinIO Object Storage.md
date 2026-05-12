@@ -121,6 +121,8 @@ Nextflow work directories accumulate fast. 30-day auto-delete keeps the HDD from
 - [x] Versioning enabled for `pipeline-output`
 - [x] Versioning enabled for `loki-chunks`
 - [x] `pipeline-work` lifecycle expiry set to 30 days
+- [x] Non-root `nextflow-sa` user created with least-privilege bucket policy
+- [x] Non-root `loki-sa` user created with least-privilege bucket policy
 - [ ] `mc ls homelab/pipeline-input` works from the Mac with a non-root platform user
 - [ ] Loki writing to `loki-chunks` bucket confirmed in Grafana
 - [ ] Prometheus TSDB migrated to Beelink HDD

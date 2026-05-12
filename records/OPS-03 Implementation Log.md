@@ -238,9 +238,31 @@ Issues resolved:
 - Removed stale Bitnami `minio-console` service, network policies, and pod disruption budgets after switching to the GXP manifests.
 
 Current remaining work:
-- Create sealed non-root MinIO users for Nextflow and Loki.
 - Reconfigure Loki to use `loki-chunks`.
 - Migrate Prometheus TSDB to `local-hdd`.
+
+---
+
+### [2026-05-12] -- MinIO service users provisioned
+
+**Phase:** PH-03
+**Status:** Completed
+
+Non-root MinIO service users were created for Nextflow and Loki. Credentials were generated locally, sealed into Git, and applied as `minio-service-users`. Policies were stored in `minio-iam-policies` and attached by the `minio-iam` job.
+
+Output / Result:
+```text
+Added user nextflow-sa successfully.
+Added user loki-sa successfully.
+Created policy nextflow-policy successfully.
+Created policy loki-policy successfully.
+Attached Policies: [nextflow-policy]
+To User: nextflow-sa
+Attached Policies: [loki-policy]
+To User: loki-sa
+```
+
+The root credential is still present for platform administration, but future Nextflow and Loki configuration should use the dedicated service-user credentials.
 
 ---
 
@@ -337,6 +359,9 @@ sha256sum apps/<app>/helm-release.yaml
 | MinIO Service | k8s/apps/minio/service.yaml | c89d92a7ebc8b5747d6503fff851bbbde6145a6e55346e98c1b5181a2bcb6e32 | 2026-05-12 |
 | MinIO Ingress | k8s/apps/minio/ingress.yaml | 53e629a221a76283636faa02f3ff14090a22d381d77c504a8af8fe40bbcd9428 | 2026-05-12 |
 | MinIO Provisioning Job | k8s/apps/minio/provisioning-job.yaml | d3907b35c6ae77e0b003de945c15b1c756a46270dd97145c1c00b147c809cb5b | 2026-05-12 |
+| MinIO IAM policies | k8s/apps/minio/policies-configmap.yaml | 8417af0a0e148efd74bfdd2e74add74f8b9bfadd4969be967cb91ecabc5cfdd7 | 2026-05-12 |
+| MinIO service-user SealedSecret | k8s/apps/minio/users-sealed-secret.yaml | 909501a2c5fe50c112b02c5d3a9fa895ce02381c4e3397650ecaa66ae31538ba | 2026-05-12 |
+| MinIO IAM Job | k8s/apps/minio/iam-job.yaml | e47d64a96b924b636793c0c22f75362e3805ac9ceca0902a22b017f544d80b8f | 2026-05-12 |
 | MinIO | apps/minio/helm-release.yaml | | |
 | Gatekeeper | apps/gatekeeper/helm-release.yaml | | |
 | Falco | apps/falco/helm-release.yaml | | |

@@ -13,6 +13,9 @@ MinIO provides S3-compatible storage for pipeline data and Loki chunks.
 | `service.yaml` | ClusterIP service for API and console |
 | `ingress.yaml` | TLS ingress for `minio.homelab` and `minio-console.homelab` |
 | `provisioning-job.yaml` | Bucket creation, versioning, and work bucket lifecycle |
+| `policies-configmap.yaml` | MinIO IAM policies for platform service users |
+| `users-sealed-secret.yaml` | Sealed service-user credentials |
+| `iam-job.yaml` | Service-user and policy provisioning |
 
 ## Buckets
 
