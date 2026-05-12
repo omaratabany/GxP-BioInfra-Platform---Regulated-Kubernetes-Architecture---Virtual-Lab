@@ -266,6 +266,41 @@ The root credential is still present for platform administration, but future Nex
 
 ---
 
+### [2026-05-12] -- ArgoCD root moved to Forgejo mirror
+
+**Phase:** Platform
+**Status:** Completed
+
+The local Git commits were pushed to the internal Forgejo mirror. A scoped Forgejo token was generated for ArgoCD, sealed as `gxp-forgejo-repo`, and applied in the `argocd` namespace. The ArgoCD root Application now reads from the internal Forgejo service URL:
+
+```text
+http://forgejo-http.forgejo.svc.cluster.local:3000/gxp-admin/gxp-platform.git
+```
+
+Result:
+```text
+root: Synced, Healthy
+```
+
+During the move, root was briefly deleted because the GXP repo did not yet contain a root Application manifest under `k8s/apps`. Added `k8s/apps/argocd/root-application.yaml`, reapplied root, pushed the commit to Forgejo, and refreshed ArgoCD.
+
+---
+
+### [2026-05-12] -- Monitoring PodSecurity exception applied
+
+**Phase:** Platform
+**Status:** Completed
+
+The `monitoring` namespace was labelled as privileged because node-exporter and promtail require host namespaces and hostPath mounts. After applying `k8s/apps/monitoring/namespace-podsecurity.yaml`, both daemonsets were restarted and rolled out successfully.
+
+Result:
+```text
+kube-prometheus-stack-prometheus-node-exporter: 2/2 Running
+loki-stack-promtail: 2/2 Running
+```
+
+---
+
 *Subsequent entries are added here as the build progresses.*
 
 ---
@@ -287,9 +322,10 @@ Running list of issues encountered across all phases. Each issue also gets a ful
 | 2026-05-12 | PH-02 | Pods could not resolve homelab hostnames | Resolved | Added CoreDNS `hosts` entries for the MetalLB VIP |
 | 2026-05-12 | PH-02 | Forgejo could not verify Authentik TLS | Resolved | Mounted the homelab root CA and set `SSL_CERT_FILE` |
 | 2026-05-12 | PH-02 | Grafana is owned by older monitoring ApplicationSet | Open | Captured SSO as a live overlay pending migration into the GXP repo |
-| 2026-05-12 | PH-02 | ArgoCD root Application still points to the older home lab repo | Open | Keep current root until repository credentials for the GXP mirror are sealed or GitHub push access is restored |
+| 2026-05-12 | PH-02 | ArgoCD root Application still points to the older home lab repo | Resolved | Sealed a Forgejo repository credential, pushed local commits to Forgejo, and moved root to the GXP mirror |
 | 2026-05-12 | PH-03 | Bitnami MinIO image tags were unavailable | Resolved | Replaced the chart path with pinned official MinIO images |
 | 2026-05-12 | PH-03 | MinIO client could not write `/.mc` as non-root | Resolved | Set `MC_CONFIG_DIR=/tmp/.mc` in the provisioning job |
+| 2026-05-12 | Platform | Monitoring daemonsets blocked by baseline PodSecurity | Resolved | Recorded and applied a privileged namespace exception for monitoring host collectors |
 
 ---
 

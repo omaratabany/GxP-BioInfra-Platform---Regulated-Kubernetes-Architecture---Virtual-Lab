@@ -22,3 +22,5 @@ Manifests in `apps/` are intended to represent desired cluster state. Manifests 
 `apps/monitoring/grafana-oidc-deployment-patch.yaml` is a strategic merge patch for the current Grafana Deployment. Do not apply it as a full Deployment manifest.
 
 Files in `apps/argocd/` are also merge patches. Apply them with `kubectl patch --type merge --patch-file` so existing ArgoCD tuning keys are preserved.
+
+`apps/monitoring/namespace-podsecurity.yaml` records a deliberate privileged namespace exception. Node exporter, promtail, and later runtime security agents require host namespaces and hostPath mounts.

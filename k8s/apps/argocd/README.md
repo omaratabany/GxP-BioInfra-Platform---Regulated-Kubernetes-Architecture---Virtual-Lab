@@ -26,4 +26,4 @@ kubectl --kubeconfig /Users/omaratabany/Kuber/kubeconfig \
   rollout restart deployment/argocd-server -n argocd
 ```
 
-The root ArgoCD Application still points at the older home lab repo. Migration to this GXP repo should happen after ArgoCD has repository credentials for the internal Forgejo mirror or GitHub push access is restored.
+The root ArgoCD Application points at the internal Forgejo mirror and recursively reads `k8s/apps`. Patch helper files are excluded by root and must be applied with the commands above.

@@ -9,6 +9,9 @@ spec:
     repoURL: http://forgejo-http.forgejo.svc.cluster.local:3000/gxp-admin/gxp-platform.git
     path: k8s/apps
     targetRevision: main
+    directory:
+      recurse: true
+      exclude: "{**/README.md,**/values.yaml,**/*-patch.yaml}"
   destination:
     server: https://kubernetes.default.svc
     namespace: argocd
