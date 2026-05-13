@@ -17,7 +17,7 @@ data:
         prometheus :9153
 
         hosts {
-            192.168.0.200 auth.homelab forgejo.homelab argocd.homelab grafana.homelab minio.homelab minio-console.homelab prometheus.homelab alertmanager.homelab
+            192.168.0.200 auth.homelab forgejo.homelab argocd.homelab grafana.homelab minio.homelab minio-console.homelab prometheus.homelab alertmanager.homelab dashboard.homelab
             fallthrough
         }
 
