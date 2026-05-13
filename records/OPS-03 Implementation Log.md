@@ -40,6 +40,48 @@ Resolution (if issue):
 
 ## Log
 
+### [2026-05-13] -- Infrastructure ApplicationSet captured in Git
+
+**Phase:** Platform
+**Status:** In progress
+
+Live verification confirmed that `kube-prometheus-stack` and `metallb` were still OutOfSync but Healthy. The legacy `infrastructure` ApplicationSet was still present only as a live cluster object. I captured the current ApplicationSet definition under `k8s/apps/argocd/infrastructure-applicationset.yaml` and added `ServerSideApply=true` to its generated Applications so ArgoCD can reconcile large Helm CRDs without failing on client-side apply annotation size limits.
+
+Commands run:
+```bash
+kubectl --kubeconfig /Users/omaratabany/Kuber/kubeconfig -n argocd get applications.argoproj.io
+kubectl --kubeconfig /Users/omaratabany/Kuber/kubeconfig -n argocd get applicationsets.argoproj.io infrastructure -o yaml
+kubectl --kubeconfig /Users/omaratabany/Kuber/kubeconfig get crd bgppeers.metallb.io -o yaml
+```
+
+Output / Result:
+```text
+kube-prometheus-stack: OutOfSync, Healthy
+metallb: OutOfSync, Healthy
+metallb drift: bgppeers.metallb.io CRD only
+kube-prometheus-stack drift: Prometheus Operator CRDs plus shared Grafana ConfigMap from the SSO overlay
+```
+
+Follow-up verification:
+```bash
+kubectl --kubeconfig /Users/omaratabany/Kuber/kubeconfig apply -f k8s/apps/argocd/infrastructure-applicationset.yaml
+kubectl --kubeconfig /Users/omaratabany/Kuber/kubeconfig -n argocd patch applications.argoproj.io metallb --type merge -p '{"operation":{"initiatedBy":{"username":"codex"},"sync":{"revision":"0.14.5","prune":true,"syncOptions":["CreateNamespace=true","ServerSideApply=true"]}}}'
+kubectl --kubeconfig /Users/omaratabany/Kuber/kubeconfig -n argocd patch applications.argoproj.io kube-prometheus-stack --type merge -p '{"operation":{"initiatedBy":{"username":"codex"},"sync":{"revision":"58.2.2","prune":true,"syncOptions":["CreateNamespace=true","ServerSideApply=true"]}}}'
+```
+
+Output / Result:
+```text
+ApplicationSet infrastructure configured
+metallb sync completed successfully but remains OutOfSync on bgppeers.metallb.io comparison
+kube-prometheus-stack sync initially reported a failed task for thanosrulers.monitoring.coreos.com, then recovered to Healthy
+Prometheus CR: desired 1, ready 1, reconciled True, available True
+Alertmanager CR: replicas 1, ready 1, reconciled True, available True
+```
+
+Remaining work:
+- Add a comparison ignore or chart-value migration for generated CRD webhook CA fields if they continue to keep MetalLB OutOfSync.
+- Complete the monitoring migration so Grafana SSO, Loki object storage, and Prometheus storage are owned through Helm values instead of live overlays.
+
 ### [2026-05-11] -- Phase 0 completed
 
 **Phase:** PH-00
