@@ -82,6 +82,34 @@ Remaining work:
 - Add a comparison ignore or chart-value migration for generated CRD webhook CA fields if they continue to keep MetalLB OutOfSync.
 - Complete the monitoring migration so Grafana SSO, Loki object storage, and Prometheus storage are owned through Helm values instead of live overlays.
 
+### [2026-05-13] -- Local Forgejo Git access prepared
+
+**Phase:** PH-01
+**Status:** In progress
+
+The local checkout only had the GitHub `origin` remote. I added a local `forgejo` remote pointing at `https://forgejo.homelab/gxp-admin/gxp-platform.git`, configured this checkout to resolve `forgejo.homelab` to the MetalLB VIP `192.168.0.200`, and added the public homelab root CA at `certs/homelab-root-ca.crt` so local Git can trust the Forgejo ingress certificate.
+
+Commands run:
+```bash
+git remote add forgejo https://forgejo.homelab/gxp-admin/gxp-platform.git
+git config --local --add http.curloptResolve forgejo.homelab:443:192.168.0.200
+git config --local http.https://forgejo.homelab/.sslCAInfo certs/homelab-root-ca.crt
+git ls-remote forgejo HEAD
+```
+
+Output / Result:
+```text
+forgejo remote configured
+Forgejo DNS override configured for local Git
+Forgejo CA path configured for local Git
+git ls-remote reached Forgejo but stopped at authentication:
+fatal: could not read Username for 'https://forgejo.homelab': Device not configured
+```
+
+Remaining work:
+- Push local commits to Forgejo using an approved credential path.
+- Keep credentials out of Git config and project files.
+
 ### [2026-05-11] -- Phase 0 completed
 
 **Phase:** PH-00
