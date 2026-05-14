@@ -40,6 +40,76 @@ Resolution (if issue):
 
 ## Log
 
+### [2026-05-14] -- Live-cluster audit against documented status
+
+**Phase:** Platform
+**Status:** Observation
+
+Ran a full read-only audit of the cluster against the documented phase status to find documentation drift before pushing further phase work. Verified by `kubectl` against `~/Kuber/kubeconfig`, `talosctl version` against the worker, and `kubectl exec` into the MinIO pod to enumerate buckets and IAM users with `mc`.
+
+Verification commands run:
+```bash
+kubectl --kubeconfig ~/Kuber/kubeconfig get nodes -o wide
+kubectl --kubeconfig ~/Kuber/kubeconfig get ns
+kubectl --kubeconfig ~/Kuber/kubeconfig -n argocd get applications.argoproj.io
+kubectl --kubeconfig ~/Kuber/kubeconfig get sc,pv,ingress -A
+kubectl --kubeconfig ~/Kuber/kubeconfig get certificate -A
+kubectl --kubeconfig ~/Kuber/kubeconfig get ns -L pod-security.kubernetes.io/enforce
+kubectl --kubeconfig ~/Kuber/kubeconfig -n monitoring get prometheus -o jsonpath='{.items[0].spec.storage}{" / "}{.items[0].spec.retention}'
+kubectl --kubeconfig ~/Kuber/kubeconfig -n argocd get cm argocd-cm -o jsonpath='{.data.oidc\.config}'
+kubectl --kubeconfig ~/Kuber/kubeconfig -n monitoring get cm kube-prometheus-stack-grafana -o jsonpath='{.data.grafana\.ini}'
+kubectl --kubeconfig ~/Kuber/kubeconfig -n minio exec deploy/minio -- mc alias set local http://localhost:9000 $MINIO_ROOT_USER $MINIO_ROOT_PASSWORD
+kubectl --kubeconfig ~/Kuber/kubeconfig -n minio exec deploy/minio -- mc ls local/
+kubectl --kubeconfig ~/Kuber/kubeconfig -n minio exec deploy/minio -- mc admin user list local
+kubectl --kubeconfig ~/Kuber/kubeconfig -n minio exec deploy/minio -- mc admin policy list local
+talosctl --talosconfig ~/Kuber/talos-init/talosconfig --nodes 192.168.0.202 --endpoints 192.168.0.202 version
+```
+
+Output / Result:
+```text
+nodes: talos-asj-72z control-plane Ready 28d v1.35.2 (Talos v1.12.6)
+       talos-v3h-4m1 worker        Ready 20d v1.35.2 (Talos v1.12.6)
+storage class: local-hdd (default)
+PVs bound: forgejo-data 20Gi, data-authentik-postgresql-0 10Gi, minio 200Gi
+ArgoCD apps: authentik, cert-manager, forgejo, ingress-nginx, loki-stack, root, sealed-secrets Synced/Healthy
+             kube-prometheus-stack OutOfSync/Healthy (ConfigMap/kube-prometheus-stack-grafana)
+             metallb               OutOfSync/Healthy (CustomResourceDefinition/bgppeers.metallb.io)
+namespaces present: argocd, authentik, cert-manager, forgejo, ingress-nginx, local-path-storage,
+                    metallb-system, minio, monitoring, sealed-secrets, kubernetes-dashboard
+gatekeeper-system / falco / pipelines namespaces: not present
+Authentik OIDC for ArgoCD: configured (issuer https://auth.homelab/application/o/argocd/, scopes openid/profile/email/groups, rootCA pinned)
+Grafana grafana.ini: [auth.generic_oauth] enabled=true, client_id=grafana, role mapping platform-admin -> Admin else Viewer
+MinIO buckets (verified inside pod): loki-chunks, pipeline-input, pipeline-output, pipeline-work
+MinIO users (verified inside pod): loki-sa (loki-policy), nextflow-sa (nextflow-policy)
+Prometheus storage spec: empty (emptyDir), retention 10d -- PH-03 G-11 migration NOT done
+Loki configmap: only datasource config visible, chart loki-stack-2.10.2 from 2026-04-15 -- still pre-MinIO filesystem backend
+Talos worker tag: v1.12.6
+```
+
+Documentation deviations found and reconciled in this commit:
+
+| # | Where | Was | Now | Reason |
+|---|---|---|---|---|
+| 1 | `README.md` status table | PH-01 COMPLETE, PH-02 NOT STARTED, PH-03 NOT STARTED | PH-01 COMPLETE, PH-02 IN PROGRESS, PH-03 IN PROGRESS | Phase plans and this log already reflected PH-02/PH-03 deployment activity from 2026-05-12. Only the index README lagged the per-phase documents. |
+| 2 | `plans/roadmap/PRJ-02 Phase Map and Schedule.md` | PH-01 IN PROGRESS, PH-02 NOT STARTED, PH-03 NOT STARTED | PH-01 COMPLETE, PH-02 IN PROGRESS, PH-03 IN PROGRESS | Same lag as the README. Roadmap is updated separately from the phase plans and was last touched before PH-01 closure. |
+
+Implementation deviations confirmed against live state (each is already disclosed in the relevant phase plan or earlier log entry — listed here to make the rationale explicit for audit):
+
+- **MinIO uses first-party Kubernetes manifests instead of the Bitnami Helm chart.** Reason: Bitnami chart `17.0.21` rendered correctly but its referenced Docker Hub image tags returned `not found` from the Talos nodes. Replaced with pinned `quay.io/minio/minio` and `quay.io/minio/mc` digests under `k8s/apps/minio/`. Already captured in `plans/phases/PH-03 MinIO Object Storage.md` ("Current Deployment").
+- **MetalLB L2 advertisement spans both NIC names** (`eno1`, `enp1s0`) instead of `eno1` only. Reason: the Omen uses `eno1` and the Beelink uses `enp1s0`; pinning to one interface broke VIP advertisement when ownership moved. Recorded under `k8s/apps/platform-network/metallb-l2-config.yaml`.
+- **Grafana SSO is wired as a live overlay**, not as a chart value managed under this GXP repo. Reason: Grafana is still owned by the older `kube-prometheus-stack` ApplicationSet which lives outside this repo; migrating it requires moving the monitoring stack under `k8s/apps/monitoring/` first. This is the source of the persistent `kube-prometheus-stack` `OutOfSync/Healthy` drift on `ConfigMap/kube-prometheus-stack-grafana`. Tracked as remaining work in the 2026-05-12 Authentik entry above.
+- **ArgoCD `metallb` app remains `OutOfSync/Healthy`** on `bgppeers.metallb.io`. Reason: the chart-generated CRD includes webhook CA fields that are reconciled live by cert-manager and re-diverge after every sync. ServerSideApply is now set; a comparison-ignore rule for that CRD is the next step. Tracked in the 2026-05-13 ApplicationSet entry above.
+- **Loki has not yet been migrated to MinIO** (`loki-chunks` bucket exists with `loki-sa` policy attached but Loki is still on the chart's default filesystem storage). Reason: Loki belongs to the same older monitoring ApplicationSet as Grafana; the migration is bundled with the kube-prometheus-stack move under this GXP repo. Already listed as remaining work in `plans/phases/PH-03 MinIO Object Storage.md`.
+- **Prometheus TSDB has not been migrated to `local-hdd`** (no PVC in `monitoring`, retention 10d, emptyDir). Reason: same as Loki — bundled with the monitoring-stack migration into this repo. Tracked in the PH-03 G-11 addendum.
+- **Forgejo container image is `15.0.1+gitea-1.22.0`** while the deployed chart is `17.0.1`. Not a deviation: chart version and app version are decoupled in the Forgejo Helm chart. Recorded here only to prevent confusion in a future audit.
+
+Next actions in dependency order:
+1. PH-02 close-out: end-to-end browser login per app, verify group claim → role mapping in live tokens, disable local password fallback, take `../snapshots/phase2-authentik-complete.snapshot`, tick PH-02 in the Phase Completion Checklist below.
+2. PH-03 close-out: migrate kube-prometheus-stack and loki-stack under `k8s/apps/monitoring/` in this repo; reconfigure Loki to S3 (`endpoint http://minio.minio.svc:9000`, `bucketnames loki-chunks`, `s3forcepathstyle true`); add Prometheus `storageSpec` with `local-hdd` 20Gi / 30d / `nodeSelector node-role=storage`. Resolves Grafana drift, Loki bucket usage, and Prometheus TSDB persistence in one chart-values change.
+3. Begin PH-04 Gatekeeper rollout per `plans/phases/PH-04 OPA Gatekeeper.md` (templates → constraints in `warn` → 48h audit → flip to `deny` in documented order).
+
+---
+
 ### [2026-05-13] -- Infrastructure ApplicationSet captured in Git
 
 **Phase:** Platform
