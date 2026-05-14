@@ -6,12 +6,14 @@
 
 ## Schedule
 
+Status column reconciled against the live cluster on 2026-05-14. See [[OPS-03 Implementation Log]] for the verification entry.
+
 | Week | CKA Domain | Project Phase | Status |
 |---|---|---|---|
 | 1-2 | Cluster architecture, etcd | [[PH-00 Cluster Preparation]] | COMPLETE |
-| 3 | Workloads | [[PH-01 Forgejo]] | IN PROGRESS |
-| 4 | Scheduling, affinity | [[PH-02 Authentik SSO]] | NOT STARTED |
-| 5 | Networking | [[PH-03 MinIO Object Storage]] | NOT STARTED |
+| 3 | Workloads | [[PH-01 Forgejo]] | COMPLETE |
+| 4 | Scheduling, affinity | [[PH-02 Authentik SSO]] | IN PROGRESS |
+| 5 | Networking | [[PH-03 MinIO Object Storage]] | IN PROGRESS |
 | 6 | Storage | [[PH-04 OPA Gatekeeper]] | NOT STARTED |
 | 7 | RBAC, troubleshooting | [[PH-05 Falco Runtime Security]] + [[PH-06 Nextflow and nf-core]] | NOT STARTED |
 | 8 | Exam sim | [[PH-06 Nextflow and nf-core]] -- pipeline run | NOT STARTED |
@@ -24,14 +26,14 @@
 ### [[PH-00 Cluster Preparation]] -- COMPLETE
 My foundation is locked. Node labels are applied, the Omen is untainted, the Beelink HDD is mounted and verified, `local-hdd` is the default StorageClass, and a real PVC test proved provisioning onto the Beelink HDD. The PH-00 etcd snapshot is saved outside the Git repo at `../snapshots/phase0-complete.snapshot`.
 
-### [[PH-01 Forgejo]] -- IN PROGRESS
-Forgejo is deployed and healthy on the Beelink storage node with a `local-hdd` PVC, SealedSecret admin credentials, TLS from the homelab CA issuer, and SSH exposed through NodePort `32222`. The remaining work is to fix MetalLB VIP reachability, complete browser login, create the platform repo in Forgejo, and configure the ArgoCD webhook.
+### [[PH-01 Forgejo]] -- COMPLETE
+Forgejo is deployed and healthy on the Beelink storage node with a `local-hdd` PVC, SealedSecret admin credentials, TLS from the homelab CA issuer, and SSH exposed through NodePort `32222`. The MetalLB VIP is reachable on 80/443, the platform repo `gxp-admin/gxp-platform` exists in Forgejo, and the ArgoCD root Application now reads from `http://forgejo-http.forgejo.svc.cluster.local:3000/gxp-admin/gxp-platform.git`.
 
-### [[PH-02 Authentik SSO]] -- NOT STARTED
-OIDC and SSO across the whole platform. After this phase, I have a single account across Forgejo, ArgoCD, and Grafana. No local user passwords remain anywhere on the cluster.
+### [[PH-02 Authentik SSO]] -- IN PROGRESS
+Authentik server, worker, and PostgreSQL are running. OIDC clients are configured for Forgejo, ArgoCD, and Grafana, with the platform groups (`platform-admin`, `developer`, `readonly`) created. Remaining: end-to-end browser logins per app, confirmation of group-claim role mapping in live tokens, and disabling local password fallback.
 
-### [[PH-03 MinIO Object Storage]] -- NOT STARTED
-S3-compatible object storage on the Beelink HDD. I create the pipeline data buckets and migrate Loki off its local PVC onto the MinIO backend.
+### [[PH-03 MinIO Object Storage]] -- IN PROGRESS
+MinIO is live on the Beelink HDD with a 200Gi PVC, all four buckets (`pipeline-input`, `pipeline-output`, `pipeline-work`, `loki-chunks`) created with versioning and lifecycle as planned, and least-privilege `nextflow-sa` / `loki-sa` users provisioned. Remaining: reconfigure Loki to write to `loki-chunks` and migrate Prometheus TSDB onto `local-hdd` (G-11 addendum in [[PH-03 MinIO Object Storage]]).
 
 ### [[PH-04 OPA Gatekeeper]] -- NOT STARTED
 Policy-as-code admission control. My first hard GxP enforcement layer -- image digest pinning, resource limits, and approved registry constraints enforced at the API before anything runs.

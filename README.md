@@ -39,16 +39,18 @@ Start here:
 
 ## Current Status
 
-| Phase | Name | Status |
-|---|---|---|
-| PH-00 | Cluster Preparation | COMPLETE |
-| PH-01 | Forgejo | COMPLETE |
-| PH-02 | Authentik SSO | NOT STARTED |
-| PH-03 | MinIO Object Storage | NOT STARTED |
-| PH-04 | OPA Gatekeeper | NOT STARTED |
-| PH-05 | Falco Runtime Security | NOT STARTED |
-| PH-06 | Nextflow and nf-core | NOT STARTED |
-| PH-07 | GxP Validation Documentation | NOT STARTED |
+Status table last reconciled against live cluster on 2026-05-14. See [records/OPS-03 Implementation Log.md](records/OPS-03%20Implementation%20Log.md) for the verification entry.
+
+| Phase | Name | Status | Notes |
+|---|---|---|---|
+| PH-00 | Cluster Preparation | COMPLETE | Verified live: 2 Talos nodes Ready, `local-hdd` default SC, `node-role` labels applied |
+| PH-01 | Forgejo | COMPLETE | Forgejo 15.0.1 running on Beelink, ArgoCD root pulls from internal Forgejo mirror |
+| PH-02 | Authentik SSO | IN PROGRESS | Server/worker/PostgreSQL running, OIDC wired for Forgejo/ArgoCD/Grafana, browser login validation + local-password disable still open |
+| PH-03 | MinIO Object Storage | IN PROGRESS | MinIO + buckets + IAM users live; Loki migration to `loki-chunks` and Prometheus TSDB migration to `local-hdd` still open |
+| PH-04 | OPA Gatekeeper | NOT STARTED | |
+| PH-05 | Falco Runtime Security | NOT STARTED | |
+| PH-06 | Nextflow and nf-core | NOT STARTED | |
+| PH-07 | GxP Validation Documentation | NOT STARTED | |
 
 ## Cluster at a Glance
 
